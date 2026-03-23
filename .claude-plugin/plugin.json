@@ -1,0 +1,11 @@
+{
+  "name": "video-to-code-skill",
+  "description": "Transforms video content (screen recordings, demos, bug reports) into structured multimodal data — keyframes synced with audio transcription — for AI analysis.",
+  "version": "1.2",
+  "author": {
+    "name": "Piotr Lason"
+  },
+  "repository": "https://github.com/PiotrLason/video-to-code-skill",
+  "license": "MIT",
+  "keywords": ["video", "screen-recording", "keyframes", "transcription", "whisper", "opencv", "multimodal", "testing", "qa", "automation", "test-automation", "testing-tools", "software-testing", "claude", "qa-automation-test", "qa-automation", "claude-ai", "claude-code", "claude-code-plugin", "claude-skills", "claude-skill", "claude-code-skills", "claude-code-skill"]
+}

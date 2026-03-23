@@ -1,14 +1,14 @@
-# video-to-code-skill v1.1
+# video-to-code-skill v1.2
 
-An Agent Skill following the open format: https://agentskills.io/what-are-skills
+A Claude Code Plugin following the open format: https://agentskills.io/what-are-skills, https://code.claude.com/docs/en/plugins
 
-Inputs the "content" from a video into the Claude Code prompt / context window as a **bundle of voice transcription, time-synced with keyframes** - screenshots of key moments from the video (for example screen recording with voiceover), then archives it for future use.
+Inputs the **content** of any video into **Claude Code prompt / context window** as a **multimodal bundle of voice transcription and data summary, time synced with keyframes** - screenshots of key moments from the video so it can be used for all further requests related to that content.
 
-There are **limitless usage scenarios** for this skill. Now you can show and tell your LLM Agent what needs to be done in a complete flow, illustrated by the pre-recorded video, instead of typing text and pasting screenshots in individual steps.
+There are **limitless usage scenarios** for this skill. Now you can show and tell your LLM Agent what needs to be done in a complete flow, illustrated by the pre-recorded video, instead of typing text and pasting screenshots in individual steps. You can even have "conversations" with an Agent about the content found in the video etc., etc...
 
 Refer to **examples**: [references/usage-examples.md](references/usage-examples.md)
 
-Tested on: MacBook with Silicon CPU & Claude Code Opus 4.5 / 4.6
+**Tested on**: MacBook with Silicon chip & Claude Code Opus 4.5 / 4.6
 
 Note: Python script used to process video and audio content was **100% vibe coded**.
 
@@ -26,7 +26,47 @@ Note: Python script used to process video and audio content was **100% vibe code
 6. If the video contains narration/speech, saves `narration.md` with the full transcript in screenplay-ready format with timestamp ranges
 7. Finally, it asks the user what needs to be done with the new context
 
+## Installation
+
+### Option 1: From Anthropic marketplace (preferred)
+
+```
+/plugin install video-to-code-skill@claude-plugins-official
+```
+
+### Option 2: From GitHub
+
+```
+/plugin marketplace add PiotrLason/video-to-code-skill
+/plugin install video-to-code-skill@piotrlason-video-to-code-skill
+```
+
+### Option 3: From local clone
+
+Clone the repo and add it as a local marketplace:
+
+```bash
+git clone https://github.com/PiotrLason/video-to-code-skill.git
+```
+
+```
+/plugin marketplace add ./video-to-code-skill
+/plugin install video-to-code-skill@video-to-code-skill
+```
+
+### After installation
+
+Run `/video-to-code-skill:setup-video-to-code-skill` to set up dependencies, then `/video-to-code-skill:run-video-to-code-skill` to analyze a video.
+
+### Updating
+
+```
+/plugin marketplace update video-to-code-skill
+```
+
 ## Prerequisites
+
+*Dependencies are installed by running `/video-to-code-skill:setup-video-to-code-skill`.*
 
 | Requirement | Installation |
 |---|---|
@@ -35,8 +75,6 @@ Note: Python script used to process video and audio content was **100% vibe code
 | mlx-whisper | `pip install mlx-whisper` (Mac) |
 | openai-whisper | `pip install openai-whisper` (fallback) |
 | ffmpeg | `brew install ffmpeg` (for audio extraction) |
-
-*Dependencies auto-install on first run.*
 
 ## Input
 
@@ -47,11 +85,14 @@ Note: Python script used to process video and audio content was **100% vibe code
 
 ## Usage in Claude Code
 
-```
-/video-to-code-skill
-```
+### Skills
 
-### Parameters
+| Skill | Invocation | Description |
+|-------|------------|-------------|
+| **setup-video-to-code-skill** | `/video-to-code-skill:setup-video-to-code-skill` | Sets up storage folder and installs dependencies. Run once before first use. |
+| **run-video-to-code-skill** | `/video-to-code-skill:run-video-to-code-skill` | Analyzes a video — extracts keyframes, transcribes audio, summarizes, and archives. |
+
+### Parameters (for `/video-to-code-skill:run-video-to-code-skill`)
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -64,8 +105,9 @@ More information will be added here.
 Examples:
 
 ```
-/video-to-code-skill -dt 5
-/video-to-code-skill 2026-03-19_10-12-51
+/video-to-code-skill:run-video-to-code-skill
+/video-to-code-skill:run-video-to-code-skill -dt 5
+/video-to-code-skill:run-video-to-code-skill 2026-03-19_10-12-51
 ```
 
 ## Output
@@ -74,7 +116,7 @@ Examples:
 
 Video and analysis are archived to:
 
-Located in `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS [summary]/analysis/`:
+Located in `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS [video_filename]/analysis/`:
 
 | File | Description |
 |---|---|
@@ -83,7 +125,7 @@ Located in `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS [summary]/
 | `analysis.md` | Human-readable summary |
 | `keyframes/` | PNG images of key moments |
 
-Located in `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS [summary]/`:
+Located in `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS [video_filename]/`:
 
 | File | Description |
 |---|---|
@@ -96,24 +138,6 @@ Located in `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS [summary]/
 - Summary of what the user is demonstrating
 - Key moments with timestamps
 - User's apparent intent
-
-## Installation
-
-From your project root, clone this repo into your Claude Code skills directory:
-
-```bash
-git clone https://github.com/Trilogy-Care/video-to-code-skill.git .claude/skills/video-to-code-skill
-```
-
-This creates the `.claude/skills/video-to-code-skill/` folder and checks out the skill. The skill will be discovered by Claude Code on next session start — no further configuration needed.
-
-When used for the first time, processing libraries will be installed by Claude automatically. Make sure the necessary file access permissions are set up for your agent.
-
-### Updating
-
-```bash
-cd .claude/skills/video-to-code-skill && git pull
-```
 
 ## Contribution
 

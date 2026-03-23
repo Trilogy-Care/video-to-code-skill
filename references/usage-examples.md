@@ -2,21 +2,27 @@
 
 ## Basic usage
 
-Drop a video into the input folder and run the skill:
+First run `/video-to-code-skill:setup-video-to-code-skill` to set up the storage folder and install dependencies (only needed once):
+
+```bash
+/video-to-code-skill:setup-video-to-code-skill
+```
+
+Then drop a video into the input folder and run the skill:
 
 ```bash
 # 1. Place your video
 cp ~/Downloads/bug-report.mov ~/video-to-code-skill-storage/
 
 # 2. In Claude Code, run the skill
-/video-to-code-skill
+/video-to-code-skill:run-video-to-code-skill
 
 # 3. Optionally adjust keyframe detection threshold (0-100, default: 1)
 #    Use -dt or -detection_threshold
-/video-to-code-skill -dt 5
+/video-to-code-skill:run-video-to-code-skill -dt 5
 
 # 4. Optionally run the skill with action points
-/video-to-code-skill and find instances when presenter was asking for feedback and describe what was shown in the video at that time
+/video-to-code-skill:run-video-to-code-skill and find instances when presenter was asking for feedback and describe what was shown in the video at that time
 ```
 
 Claude will extract keyframes, transcribe audio, and summarize what's happening in the video.
@@ -44,7 +50,7 @@ Record yourself walking through a user flow in the browser (e.g., login, fill a 
 cp ~/Downloads/user-flow-walkthrough.mov ~/video-to-code-skill-storage/
 
 # 3. Run the skill with an instruction to generate Playwright code
-/video-to-code-skill Based on this recording, create a Playwright E2E test that automates the exact sequence of actions shown and then refactor it to the Page Object Model
+/video-to-code-skill:run-video-to-code-skill Based on this recording, create a Playwright E2E test that automates the exact sequence of actions shown and then refactor it to the Page Object Model
 ```
 
 Claude will see every screen transition and hear your narration describing what you're clicking, then generate a Playwright test with the correct selectors, assertions, and page navigation matching the recorded flow.
@@ -55,7 +61,7 @@ Claude will see every screen transition and hear your narration describing what 
 # 1. Do the prerequisite steps...
 
 # 2. Now run the skill
-/video-to-code-skill and create walkthrough with description of presented steps with screenshots, then convert to single file html
+/video-to-code-skill:run-video-to-code-skill and create walkthrough with description of presented steps with screenshots, then convert to single file html
 
 # 3. Ready to be emailed
 ```
@@ -68,7 +74,7 @@ Claude will see every screen transition and hear your narration describing what 
 If no new video is in `~/video-to-code-skill-storage/`, the skill automatically loads the most recent archived analysis:
 
 ```
-/video-to-code-skill
+/video-to-code-skill:run-video-to-code-skill
 ```
 
 > Using archived analysis from 2026-02-06_14-30-00...
@@ -80,7 +86,7 @@ This is useful when you want to continue working on a previously analyzed video 
 If you know the timestamp of a previously archived analysis, pass it directly to skip video processing and load that archive:
 
 ```
-/video-to-code-skill 2026-03-19_10-12-51
+/video-to-code-skill:run-video-to-code-skill 2026-03-19_10-12-51
 ```
 
 > Loading archived analysis from 2026-03-19_10-12-51...

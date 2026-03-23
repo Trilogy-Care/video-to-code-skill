@@ -1,0 +1,16 @@
+{
+  "name": "video-to-code-skill",
+  "owner": {
+    "name": "Piotr Lason"
+  },
+  "metadata": {
+    "description": "Transforms video content into structured multimodal data — keyframes synced with audio transcription — for AI analysis."
+  },
+  "plugins": [
+    {
+      "name": "video-to-code-skill",
+      "source": "./",
+      "description": "Transforms video content (screen recordings, demos, bug reports) into structured multimodal data — keyframes synced with audio transcription — for AI analysis."
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 ---
-name: video-to-code-skill
+name: run-video-to-code-skill
 description: Analyzes video feedback by extracting key frames and audio transcription. Use when the user mentions video feedback, screen recordings, user recordings, or wants to analyze a video file from ~/video-to-code-skill-storage folder.
 license: MIT
 compatibility: Requires Python 3, opencv-python, numpy, and mlx-whisper (or openai-whisper). macOS recommended for Metal acceleration.
 disable-model-invocation: true
 metadata:
-  author: Piotr Lason & Claudia
-  version: "1.1"
+  author: Piotr Lason
+  version: "1.2"
 ---
 
 # Your video recording will be added as a multimodal data bundle to the context window and tokenised as a part of your prompt
@@ -15,9 +15,7 @@ Analyze video feedback from `~/video-to-code-skill-storage` folder by extracting
 
 ## When to Use
 
-- User mentions "video feedback" or "screen recording"
-- User wants to analyze a recorded demo or bug report
-- User asks about feedback in `~/video-to-code-skill-storage`
+This skill runs only when explicitly invoked by the user.
 
 ## Parameters
 
@@ -27,16 +25,16 @@ Analyze video feedback from `~/video-to-code-skill-storage` folder by extracting
 | `YYYY-MM-DD_HH-MM-SS` | Timestamp of an archived video to load directly from the archive. | — |
 
 Examples:
-- `/video-to-code-skill -dt 5`
-- `/video-to-code-skill 2026-03-19_10-12-51`
+- `/video-to-code-skill:run-video-to-code-skill -dt 5`
+- `/video-to-code-skill:run-video-to-code-skill 2026-03-19_10-12-51`
 
 ### Strict parameter parsing rules
 
 **Arguments come ONLY from the `<command-message>` tag** in the conversation. The `<command-message>` tag contains the exact text the user typed after the slash command name. Parse parameters exclusively from that string.
 
-- If `<command-message>` is just `video-to-code-skill` (no extra text), there are **zero** parameters.
-- If `<command-message>` is `video-to-code-skill -dt 5`, the detection threshold is `5`.
-- If `<command-message>` is `video-to-code-skill 2026-03-19_10-12-51`, the timestamp is `2026-03-19_10-12-51`.
+- If `<command-message>` is just `run` (no extra text), there are **zero** parameters.
+- If `<command-message>` is `run -dt 5`, the detection threshold is `5`.
+- If `<command-message>` is `run 2026-03-19_10-12-51`, the timestamp is `2026-03-19_10-12-51`.
 
 **Everything else is NOT a parameter** — including IDE context, additional working directories, open file paths, environment metadata.
 
@@ -59,64 +57,45 @@ Important: You can only modify files in `~/video-to-code-skill-storage` folder. 
    ██║   ██║   ██║    ██║      ██║   ██║██║  ██║██╔══╝
    ██║   ╚██████╔╝    ╚██████╗ ╚██████╔╝██████╔╝███████╗
    ╚═╝    ╚═════╝      ╚═════╝  ╚═════╝╚═════╝ ╚══════╝  
-   SKILL v1.1
+   SKILL RUN v1.2
 ```
 
 1. **Notify the user**: Tell them "Analyzing user feedback video from ~/video-to-code-skill-storage - extracting key frames and narration transcript..."
 
-2. **Ensure storage folder exists**:
-   ```bash
-   mkdir -p ~/video-to-code-skill-storage
-   ```
-
-3. **Check and install dependencies** (first run only):
-   - If available, always prefer `/usr/bin/python3` over any venv Python for running the processor script.
-   - Check for `cv2`, `numpy`, and `mlx_whisper` using `/usr/bin/python3` first (these may be user-installed via `pip install --user`). Only install missing packages.
-   ```bash
-   /usr/bin/python3 -c "import cv2" 2>/dev/null || python3 -c "import cv2" 2>/dev/null || /usr/bin/python3 -m pip install --user opencv-python numpy || python3 -m pip install --user opencv-python numpy
-   /usr/bin/python3 -c "import mlx_whisper" 2>/dev/null || python3 -c "import mlx_whisper" 2>/dev/null || /usr/bin/python3 -m pip install --user mlx-whisper || python3 -m pip install --user mlx-whisper
-   ```
-
-4. **If a timestamp argument is provided** (matches `YYYY-MM-DD_HH-MM-SS` and follows "Strict parameter parsing rules"), look for a matching archive folder:
+2. **If a timestamp argument is provided** (matches `YYYY-MM-DD_HH-MM-SS` and follows "Strict parameter parsing rules"), look for a matching archive folder:
    ```bash
    ls -d ~/video-to-code-skill-storage/archive/<timestamp>*/ 2>/dev/null | head -1
    ```
-   - If no matching folder is found, tell the user: **"No archived video found for timestamp `<timestamp>`"** and skip to step 5.
+   - If no matching folder is found, tell the user: **"No archived video found for timestamp `<timestamp>`"** and skip to step 3.
    - Tell the user which archived video is being loaded (show the archive folder name).
-   - If a matching folder exists, read its `analysis/*/analysis.json`, as well as `summary.md` and `narration.md` (if present) — skip to step 10.
+   - If a matching folder exists, read its `analysis/*/analysis.json` and keyframe images, as well as `summary.md` and `narration.md` (if present) — skip to step 7.
 
-5. **Find the latest video file** (by modification time):
+3. **Find the latest video file** (by modification time):
    ```bash
    find ~/video-to-code-skill-storage -maxdepth 1 -type f \( -name "*.mov" -o -name "*.mp4" -o -name "*.webm" \) -exec ls -t {} + | head -1
    ```
 
-6. **If no video file found**, fall back to the most recent archived video:
+4. **If no video file found**, fall back to the most recent archived video:
    ```bash
    ls -dt ~/video-to-code-skill-storage/archive/*/ 2>/dev/null | head -1
    ```
-   - If an archived folder exists, read its `analysis/*/analysis.json` and keyframe images, as well as `summary.md` and `narration.md` (if present) — skip to step 10.
+   - If an archived folder exists, read its `analysis/*/analysis.json` and keyframe images, as well as `summary.md` and `narration.md` (if present) — skip to step 7.
    - Tell the user which archived video is being loaded (show the archive folder name).
    - If no archived analysis exists either, tell the user: **"No current or archived videos to input into the context"** and stop.
 
-7. **Locate the skill directory**: Find where this skill is installed by looking for `video-to-code-skill-processor.py`:
+5. **Run the analysis script** (use the `-dt` or `-detection_threshold` parameter value if provided, otherwise default to `1`). Prefer `/usr/bin/python3` if available:
    ```bash
-   SKILL_DIR=$(dirname "$(find ~/.claude/skills /Users -maxdepth 6 -path "*/video-to-code-skill/scripts/video-to-code-skill-processor.py" -print -quit 2>/dev/null)")
-   SKILL_DIR=$(dirname "$SKILL_DIR")
+   /usr/bin/python3 "${CLAUDE_PLUGIN_ROOT}/scripts/video-to-code-skill-processor.py" <video_path> -o ~/video-to-code-skill-storage/analysis/<video_name> -t <detection_threshold>
    ```
 
-8. **Run the analysis script** (use the `-dt` or `-detection_threshold` parameter value if provided, otherwise default to `1`). Prefer `/usr/bin/python3` if available:
-   ```bash
-   /usr/bin/python3 "$SKILL_DIR/scripts/video-to-code-skill-processor.py" <video_path> -o ~/video-to-code-skill-storage/analysis/<video_name> -t <detection_threshold>
-   ```
-
-9. **Read the results**:
+6. **Read the results**:
    - Read `~/video-to-code-skill-storage/analysis/<video_name>/analysis.json`
    - Read each keyframe image listed in the analysis
 
-10. **Summarize** what the user is demonstrating or reporting — write a detailed content summary describing what is shown and said in the video with as much detail as possible. Present this summary to the user.
+7. **Summarize** what the user is demonstrating or reporting — write a detailed content summary describing what is shown and said in the video with as much detail as possible. Present this summary to the user.
 
-11. **Archive** the analyzed video (skip if using archived analysis from step 4 or 6):
-   - Create timestamp folder: `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS_<title>/` where `<title>` is a max 35-character description derived from the video summary; separate the timestamp and title with a space where the OS allows (e.g. `2026-03-18_12-45-00 login flow dropdown bug/`), falling back to an underscore otherwise
+8. **Archive** the analyzed video (skip if using archived analysis from step 2 or 4):
+   - Create timestamp folder: `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS_<video_filename>/` where `<video_filename>` is the original video filename without extension; separate the timestamp and filename with a space where the OS allows (e.g. `2026-03-18_12-45-00 login flow dropdown bug/`), falling back to an underscore otherwise
    - Move video file and analysis folder to archive
    - Save the detailed video analysis summary as `summary.md` in the archive folder, using this structure:
      - Start with a short, high-level overview (up to 10 paragraphs) of what the video covers, grouped by chapters and topics using bullet lists when needed and short paragraphs.
@@ -124,18 +103,18 @@ Important: You can only modify files in `~/video-to-code-skill-storage` folder. 
      - Add **Questions, Requests and Issues** mentioned in the recording
      - Include the **total analysis processing time** (sum of keyframe extraction and transcription) in a clearly labeled line, formatted as `HH:MM:SS` (hours:minutes:seconds), e.g. `Total analysis time: 00:07:35`.
      - End with a final section (for example **"Detailed Walkthrough"**) that is a long-form essay addressed to a detailed oriented and technically savvy reader. This last chapter should contain the majority of the information from the video, walking through the flow, context, and reasoning in detail rather than just listing bullets.
-   - If the video contains human narration/speech, save it as `narration.md` in the archive folder in screenplay-ready format with matching timestamp ranges, e.g.:
+   - If the video contains human narration/speech, save it as `narration.md` in the archive folder in screenplay-ready format with matching timestamp ranges. Each timestamp block must contain multiple sentences — combine short consecutive transcript segments into longer blocks rather than having one sentence per timestamp. Example:
      ```
      # Narration Transcript
 
      **[00:00 – 00:12]**
-     So here I'm opening the settings panel and you can see the bug right away...
+     So here I'm opening the settings panel and you can see the bug right away. The sidebar loads but the icons are missing. I've seen this happen on every refresh since the last deploy.
 
      **[00:12 – 00:25]**
-     When I click on the dropdown it doesn't close properly, it just stays open...
+     When I click on the dropdown it doesn't close properly, it just stays open. If I click elsewhere on the page it still doesn't dismiss. The only way to close it is to click the toggle again.
      ```
 
-12. **Ask the user** what they would like help with based on the feedback
+9. **Ask the user** what they would like help with based on the feedback
 
 ## Output Format
 
@@ -157,7 +136,7 @@ Then ask: "What would you like me to help you with based on this feedback?"
 
 ## Script Reference
 
-The `$SKILL_DIR/scripts/video-to-code-skill-processor.py` script accepts these arguments:
+The `${CLAUDE_PLUGIN_ROOT}/scripts/video-to-code-skill-processor.py` script accepts these arguments:
 
 | Argument | Description | Default |
 |----------|-------------|---------|

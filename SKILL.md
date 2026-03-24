@@ -59,7 +59,7 @@ Important: You can only modify files in `~/video-to-code-skill-storage` folder. 
    ██║   ██║   ██║    ██║      ██║   ██║██║  ██║██╔══╝
    ██║   ╚██████╔╝    ╚██████╗ ╚██████╔╝██████╔╝███████╗
    ╚═╝    ╚═════╝      ╚═════╝  ╚═════╝╚═════╝ ╚══════╝  
-   SKILL v1.1
+   SKILL v1.2
 ```
 
 1. **Notify the user**: Tell them "Analyzing user feedback video from ~/video-to-code-skill-storage - extracting key frames and narration transcript..."
@@ -134,7 +134,8 @@ Important: You can only modify files in `~/video-to-code-skill-storage` folder. 
      - Add **Questions, Requests and Issues** mentioned in the recording
      - Include the **total analysis processing time** (sum of keyframe extraction and transcription) in a clearly labeled line, formatted as `HH:MM:SS` (hours:minutes:seconds), e.g. `Total analysis time: 00:07:35`.
      - End with a final section (for example **"Detailed Walkthrough"**) that is a long-form essay addressed to a detailed oriented and technically savvy reader. This last chapter should contain the majority of the information from the video, walking through the flow, context, and reasoning in detail rather than just listing bullets.
-   - If the video contains human narration/speech, save it as `narration.md` in the archive folder in screenplay-ready format with matching timestamp ranges, e.g.:
+   - If `has_audio` is `false` in `analysis.json` (or the transcript is empty), **do not create `narration.md`** — the video has no audio track or speech.
+   - Otherwise, if the video contains human narration/speech, save it as `narration.md` in the archive folder in screenplay-ready format with matching timestamp ranges, e.g.:
      ```
      # Narration Transcript
 

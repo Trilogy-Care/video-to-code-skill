@@ -253,36 +253,38 @@ class VideoAnalyzer:
         print(f"  Extracted {len(keyframes)} keyframes")
         return keyframes
 
+    def _has_audio_stream(self, video_path: str) -> bool:
+        """Check if the video file contains an audio stream using ffprobe."""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["ffprobe", "-v", "quiet", "-select_streams", "a",
+                 "-show_entries", "stream=codec_type", "-of", "csv=p=0", video_path],
+                capture_output=True, text=True, timeout=10,
+            )
+            return bool(result.stdout.strip())
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            # ffprobe not available or timed out — assume audio exists and let Whisper try
+            return True
+
     def _transcribe(self, video_path: str) -> dict:
-        """Transcribe video audio."""
-        if USE_MLX_WHISPER:
-            print(f"  Using MLX Whisper (Metal-accelerated): {self.whisper_model_name}")
-            # mlx_whisper uses direct transcribe call without loading model
-            # Map model names to HuggingFace repo paths
-            mlx_model_map = {
-                "tiny": "mlx-community/whisper-tiny-mlx",
-                "base": "mlx-community/whisper-base-mlx",
-                "small": "mlx-community/whisper-small-mlx",
-                "medium": "mlx-community/whisper-medium-mlx",
-                "large": "mlx-community/whisper-large-mlx",
-                "large-v3": "mlx-community/whisper-large-v3-mlx",
-                "large-v3-turbo": "mlx-community/whisper-large-v3-turbo",
-            }
-            mlx_model = mlx_model_map.get(self.whisper_model_name, f"mlx-community/whisper-{self.whisper_model_name}-mlx")
-            options = {"word_timestamps": True, "verbose": False, "path_or_hf_repo": mlx_model}
-            if self.language:
-                options["language"] = self.language
-            result = mlx_whisper.transcribe(video_path, **options)
-        else:
-            if self.whisper_model is None:
-                print(f"  Loading Whisper model: {self.whisper_model_name}")
-                self.whisper_model = whisper.load_model(self.whisper_model_name)
+        """Transcribe video audio. Returns empty transcription if video has no audio."""
+        empty_result = {
+            "language": "none",
+            "full_text": "",
+            "segments": [],
+            "has_audio": False,
+        }
 
-            options = {"word_timestamps": True, "verbose": False}
-            if self.language:
-                options["language"] = self.language
+        if not self._has_audio_stream(video_path):
+            print("  No audio stream detected — skipping transcription.")
+            return empty_result
 
-            result = self.whisper_model.transcribe(video_path, **options)
+        try:
+            result = self._run_whisper(video_path)
+        except Exception as e:
+            print(f"  Transcription failed ({e}) — treating as no-audio video.")
+            return empty_result
 
         segments = []
         for seg in result.get("segments", []):
@@ -310,7 +312,36 @@ class VideoAnalyzer:
             "language": result.get("language", "unknown"),
             "full_text": result.get("text", "").strip(),
             "segments": segments,
+            "has_audio": True,
         }
+
+    def _run_whisper(self, video_path: str) -> dict:
+        """Run Whisper transcription. Raises on failure."""
+        if USE_MLX_WHISPER:
+            print(f"  Using MLX Whisper (Metal-accelerated): {self.whisper_model_name}")
+            mlx_model_map = {
+                "tiny": "mlx-community/whisper-tiny-mlx",
+                "base": "mlx-community/whisper-base-mlx",
+                "small": "mlx-community/whisper-small-mlx",
+                "medium": "mlx-community/whisper-medium-mlx",
+                "large": "mlx-community/whisper-large-mlx",
+                "large-v3": "mlx-community/whisper-large-v3-mlx",
+                "large-v3-turbo": "mlx-community/whisper-large-v3-turbo",
+            }
+            mlx_model = mlx_model_map.get(self.whisper_model_name, f"mlx-community/whisper-{self.whisper_model_name}-mlx")
+            options = {"word_timestamps": True, "verbose": False, "path_or_hf_repo": mlx_model}
+            if self.language:
+                options["language"] = self.language
+            return mlx_whisper.transcribe(video_path, **options)
+        else:
+            if self.whisper_model is None:
+                print(f"  Loading Whisper model: {self.whisper_model_name}")
+                self.whisper_model = whisper.load_model(self.whisper_model_name)
+
+            options = {"word_timestamps": True, "verbose": False}
+            if self.language:
+                options["language"] = self.language
+            return self.whisper_model.transcribe(video_path, **options)
 
     def _sync_keyframes_transcript(self, keyframes: list, transcription: dict, timing_info: dict | None = None, video_path: str = "") -> dict:
         """Sync keyframes with transcript segments."""

@@ -1,4 +1,4 @@
-# video-to-code-skill v1.1
+# video-to-code-skill v1.2
 
 An Agent Skill following the open format: https://agentskills.io/what-are-skills
 

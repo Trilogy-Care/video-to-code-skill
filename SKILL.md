@@ -77,45 +77,55 @@ Important: You can only modify files in `~/video-to-code-skill-storage` folder. 
    /usr/bin/python3 -c "import mlx_whisper" 2>/dev/null || python3 -c "import mlx_whisper" 2>/dev/null || /usr/bin/python3 -m pip install --user mlx-whisper || python3 -m pip install --user mlx-whisper
    ```
 
-4. **If a timestamp argument is provided** (matches `YYYY-MM-DD_HH-MM-SS` and follows "Strict parameter parsing rules"), look for a matching archive folder:
+4. **Sanitize filenames** — replace invisible Unicode whitespace variants with regular spaces:
+   ```bash
+   python3 -c "
+   import os, re, glob
+   for f in glob.glob(os.path.expanduser('~/video-to-code-skill-storage/*')):
+       fixed = re.sub(r'[\u00a0\u202f\u2007\u2009\u200b]', ' ', f)
+       if fixed != f: os.rename(f, fixed)
+   "
+   ```
+
+5. **If a timestamp argument is provided** (matches `YYYY-MM-DD_HH-MM-SS` and follows "Strict parameter parsing rules"), look for a matching archive folder:
    ```bash
    ls -d ~/video-to-code-skill-storage/archive/<timestamp>*/ 2>/dev/null | head -1
    ```
-   - If no matching folder is found, tell the user: **"No archived video found for timestamp `<timestamp>`"** and skip to step 5.
+   - If no matching folder is found, tell the user: **"No archived video found for timestamp `<timestamp>`"** and skip to step 6.
    - Tell the user which archived video is being loaded (show the archive folder name).
-   - If a matching folder exists, read its `analysis/*/analysis.json`, as well as `summary.md` and `narration.md` (if present) — skip to step 10.
+   - If a matching folder exists, read its `analysis/*/analysis.json`, as well as `summary.md` and `narration.md` (if present) — skip to step 11.
 
-5. **Find the latest video file** (by modification time):
+6. **Find the latest video file** (by modification time):
    ```bash
    find ~/video-to-code-skill-storage -maxdepth 1 -type f \( -name "*.mov" -o -name "*.mp4" -o -name "*.webm" \) -exec ls -t {} + | head -1
    ```
 
-6. **If no video file found**, fall back to the most recent archived video:
+7. **If no video file found**, fall back to the most recent archived video:
    ```bash
    ls -dt ~/video-to-code-skill-storage/archive/*/ 2>/dev/null | head -1
    ```
-   - If an archived folder exists, read its `analysis/*/analysis.json` and keyframe images, as well as `summary.md` and `narration.md` (if present) — skip to step 10.
+   - If an archived folder exists, read its `analysis/*/analysis.json` and keyframe images, as well as `summary.md` and `narration.md` (if present) — skip to step 11.
    - Tell the user which archived video is being loaded (show the archive folder name).
    - If no archived analysis exists either, tell the user: **"No current or archived videos to input into the context"** and stop.
 
-7. **Locate the skill directory**: Find where this skill is installed by looking for `video-to-code-skill-processor.py`:
+8. **Locate the skill directory**: Find where this skill is installed by looking for `video-to-code-skill-processor.py`:
    ```bash
    SKILL_DIR=$(dirname "$(find ~/.claude/skills /Users -maxdepth 6 -path "*/video-to-code-skill/scripts/video-to-code-skill-processor.py" -print -quit 2>/dev/null)")
    SKILL_DIR=$(dirname "$SKILL_DIR")
    ```
 
-8. **Run the analysis script** (use the `-dt` or `-detection_threshold` parameter value if provided, otherwise default to `1`). Prefer `/usr/bin/python3` if available:
+9. **Run the analysis script** (use the `-dt` or `-detection_threshold` parameter value if provided, otherwise default to `1`). Prefer `/usr/bin/python3` if available:
    ```bash
    /usr/bin/python3 "$SKILL_DIR/scripts/video-to-code-skill-processor.py" <video_path> -o ~/video-to-code-skill-storage/analysis/<video_name> -t <detection_threshold>
    ```
 
-9. **Read the results**:
+10. **Read the results**:
    - Read `~/video-to-code-skill-storage/analysis/<video_name>/analysis.json`
    - Read each keyframe image listed in the analysis
 
-10. **Summarize** what the user is demonstrating or reporting — write a detailed content summary describing what is shown and said in the video with as much detail as possible. Present this summary to the user.
+11. **Summarize** what the user is demonstrating or reporting — write a detailed content summary describing what is shown and said in the video with as much detail as possible. Present this summary to the user.
 
-11. **Archive** the analyzed video (skip if using archived analysis from step 4 or 6):
+12. **Archive** the analyzed video (skip if using archived analysis from step 5 or 7):
    - Create timestamp folder: `~/video-to-code-skill-storage/archive/YYYY-MM-DD_HH-MM-SS_<title>/` where `<title>` is a max 35-character description derived from the video summary; separate the timestamp and title with a space where the OS allows (e.g. `2026-03-18_12-45-00 login flow dropdown bug/`), falling back to an underscore otherwise
    - Move video file and analysis folder to archive
    - Save the detailed video analysis summary as `summary.md` in the archive folder, using this structure:
@@ -135,7 +145,7 @@ Important: You can only modify files in `~/video-to-code-skill-storage` folder. 
      When I click on the dropdown it doesn't close properly, it just stays open...
      ```
 
-12. **Ask the user** what they would like help with based on the feedback
+13. **Ask the user** what they would like help with based on the feedback
 
 ## Output Format
 

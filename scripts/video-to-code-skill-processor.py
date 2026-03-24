@@ -6,7 +6,7 @@ Extracts keyframes from video and syncs them with voice-over transcription.
 Creates a comprehensive analysis document for AI agents to understand video content.
 
 Usage:
-    python video-input-code-skill-processor.py <video_file> [options]
+    python video-to-code-skill-processor.py <video_file> [options]
 
 Options:
     --output-dir, -o    Output directory (default: ./video_analysis)
@@ -73,7 +73,7 @@ class VideoAnalyzer:
         language: str | None = None,
         verbose: bool = False,
     ):
-        self.keyframe_threshold = keyframe_threshold
+        self.keyframe_threshold = max(0, min(100, keyframe_threshold))
         self.min_interval = min_interval
         self.whisper_model_name = whisper_model
         self.language = language
@@ -127,7 +127,7 @@ class VideoAnalyzer:
         # Step 3: Sync keyframes with transcript
         print("\nSTEP 3: Syncing keyframes with transcript...")
         print("-" * 40)
-        synced_data = self._sync_keyframes_transcript(keyframes, transcription, timing_info)
+        synced_data = self._sync_keyframes_transcript(keyframes, transcription, timing_info, video_path)
 
         # Step 4: Generate outputs
         print("\nSTEP 4: Generating outputs...")
@@ -175,10 +175,13 @@ class VideoAnalyzer:
             raise ValueError(f"Could not open video: {video_path}")
 
         fps = cap.get(cv2.CAP_PROP_FPS)
+        if not fps or fps <= 0:
+            cap.release()
+            raise ValueError(f"Could not determine FPS for video: {video_path}")
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        duration = total_frames / fps if fps > 0 else 0
+        duration = total_frames / fps
 
         print(f"  Resolution: {width}x{height}")
         print(f"  FPS: {fps:.2f}, Duration: {duration:.2f}s")
@@ -204,7 +207,7 @@ class VideoAnalyzer:
                 "timestamp": timestamp,
                 "timestamp_formatted": self._format_ts(timestamp),
                 "filename": filename,
-                "filepath": str(filepath),
+                "filepath": f"keyframes/{filename}",
                 "change_percentage": 100.0,
             })
             self.log(f"Keyframe 0: {self._format_ts(timestamp)} (first)")
@@ -239,7 +242,7 @@ class VideoAnalyzer:
                     "timestamp": round(timestamp, 3),
                     "timestamp_formatted": self._format_ts(timestamp),
                     "filename": filename,
-                    "filepath": str(filepath),
+                    "filepath": f"keyframes/{filename}",
                     "change_percentage": round(change_pct, 2),
                 })
                 self.log(f"Keyframe {len(keyframes)-1}: {self._format_ts(timestamp)} ({change_pct:.1f}%)")
@@ -309,7 +312,7 @@ class VideoAnalyzer:
             "segments": segments,
         }
 
-    def _sync_keyframes_transcript(self, keyframes: list, transcription: dict, timing_info: dict | None = None) -> dict:
+    def _sync_keyframes_transcript(self, keyframes: list, transcription: dict, timing_info: dict | None = None, video_path: str = "") -> dict:
         """Sync keyframes with transcript segments."""
         segments = transcription.get("segments", [])
 
@@ -351,7 +354,7 @@ class VideoAnalyzer:
                 }
 
         result = {
-            "source_video": str(Path(keyframes[0]["filepath"]).parent.parent) if keyframes else "",
+            "source_video": video_path,
             "analysis_time": datetime.now().isoformat(),
             "video_info": {
                 "duration": keyframes[-1]["timestamp"] if keyframes else 0,
@@ -442,10 +445,10 @@ class VideoAnalyzer:
             "",
         ])
 
+        lines.append("| Keyframe | Timestamp |")
+        lines.append("| --- | --- |")
         for kf in data["keyframes"]:
-            lines.append(f"| ![{kf['index']}](keyframes/{kf['filename']}) |")
-            lines.append(f"| {kf['timestamp_formatted']} |")
-            lines.append("")
+            lines.append(f"| ![{kf['index']}](keyframes/{kf['filename']}) | {kf['timestamp_formatted']} |")
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
@@ -479,21 +482,21 @@ def main():
         epilog="""
 Examples:
     # Basic analysis
-    python video-analyzer.py recording.mp4
+    python video-to-code-skill-processor.py recording.mp4
 
     # Custom output and settings
-    python video-analyzer.py recording.mp4 -o ./analysis -t 10 -m small
+    python video-to-code-skill-processor.py recording.mp4 -o ./analysis -t 10 -m small
 
     # Specify language for transcription
-    python video-analyzer.py recording.mp4 -l en
+    python video-to-code-skill-processor.py recording.mp4 -l en
         """,
     )
 
     parser.add_argument("video", help="Path to video file")
     parser.add_argument("-o", "--output-dir", default="./video_analysis",
                         help="Output directory (default: ./video_analysis)")
-    parser.add_argument("-t", "--threshold", type=float, default=5.0,
-                        help="Keyframe detection threshold 0-100 (default: 5)")
+    parser.add_argument("-t", "--threshold", type=float, default=1.0,
+                        help="Keyframe detection threshold 0-100 (default: 1)")
     parser.add_argument("-m", "--model", default="large-v3-turbo" if USE_MLX_WHISPER else "base",
                         choices=["tiny", "base", "small", "medium", "large", "large-v3", "large-v3-turbo"],
                         help="Whisper model (default: large-v3-turbo with MLX, base otherwise)")

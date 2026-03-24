@@ -5,8 +5,8 @@ license: MIT
 compatibility: Requires Python 3, opencv-python, numpy, and mlx-whisper (or openai-whisper). macOS recommended for Metal acceleration.
 disable-model-invocation: true
 metadata:
-  author: Piotr Lason & Claudia
-  version: "1.1"
+  author: Piotr Lason
+  version: "1.2"
 ---
 
 # Your video recording will be added as a multimodal data bundle to the context window and tokenised as a part of your prompt
